@@ -1,0 +1,64 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Setup the empirical Text data (Mocking a segment of Eugene Onegin)
+# We map characters to V (Vowel = 1) and C (Consonant = 0)
+text = "mydreamsmydreamswhathasbecomeoftheirsweetnesswhatindeedhasbecomeofmyyouth"
+vowels = set("aeiouy") # Including 'y' as a vowel as Markov sometimes treated it
+
+# Convert text into a binary sequence: 1 for Vowel, 0 for Consonant
+sequence = [1 if char in vowels else 0 for char in text if char.isalpha()]
+
+# 2. Calculate the Transition Probabilities from the data
+# States: 0 = Consonant, 1 = Vowel
+transitions = {0: [], 1: []}
+for i in range(len(sequence) - 1):
+    current_state = sequence[i]
+    next_state = sequence[i+1]
+    transitions[current_state].append(next_state)
+
+# Compute explicit transition probabilities
+# P(C -> V) and P(C -> C)
+p_01 = np.mean(transitions[0])      # P(Vowel | Consonant)
+p_00 = 1 - p_01                    # P(Consonant | Consonant)
+# P(V -> V) and P(V -> C)
+p_11 = np.mean(transitions[1])      # P(Vowel | Vowel)
+p_10 = 1 - p_11                    # P(Consonant | Vowel)
+
+# Build the Transition Matrix
+# Row 0: transitions from Consonant | Row 1: transitions from Vowel
+P = np.array([[p_00, p_01],
+              [p_10, p_11]])
+
+print("--- Calculated Transition Matrix ---")
+print(f"P(Consonant -> Consonant): {P[0,0]:.3f}, P(Consonant -> Vowel): {P[0,1]:.3f}")
+print(f"P(Vowel -> Consonant):     {P[1,0]:.3f}, P(Vowel -> Vowel):     {P[1,1]:.3f}\n")
+
+# 3. Compute Theoretical Stationary Distribution (Expected long-run average)
+# For a 2-state chain, the stationary probability of being a Vowel is: p_01 / (p_01 + p_10)
+theoretical_vowel_prob = p_01 / (p_01 + p_10)
+
+# 4. Simulate a Large Number of Dependent Steps (Testing LLN)
+np.random.seed(42)
+num_steps = 10000
+simulated_chain = np.zeros(num_steps)
+current_state = 0 # Start with a Consonant
+
+for step in range(1, num_steps):
+    # Transition to the next state using probabilities from the current state's row
+    current_state = np.random.choice([0, 1], p=P[current_state])
+    simulated_chain[step] = current_state
+
+# Calculate cumulative mean of vowels over time
+cumulative_vowel_fraction = np.cumsum(simulated_chain) / np.arange(1, num_steps + 1)
+
+# 5. Plot the Convergence to demonstrate the Law of Large Numbers
+plt.figure(figsize=(10, 5))
+plt.plot(cumulative_vowel_fraction, label="Simulated Cumulative Vowel Ratio", color='royalblue', linewidth=1.5)
+plt.axhline(y=theoretical_vowel_prob, color='crimson', linestyle='--', label=f'Theoretical Target ({theoretical_vowel_prob:.3f})')
+plt.title("Markov's Law of Large Numbers Experiment (Vowel Convergence)")
+plt.xlabel("Number of Steps (Text Length)")
+plt.ylabel("Proportion of Vowels")
+plt.legend()
+plt.grid(True, linestyle=':', alpha=0.6)
+plt.show()
