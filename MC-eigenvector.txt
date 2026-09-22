@@ -1,0 +1,25 @@
+import numpy as np
+
+# 1. Define a row-stochastic Markov transition matrix
+# (Each row must sum to 1)
+P = np.array([
+    [0.2, 0.8],
+    [0.5, 0.5]
+])
+
+# 2. Transpose the matrix to find the left eigenvector (where pi * P = pi)
+P_transposed = P.T
+
+# 3. Compute eigenvalues and eigenvectors
+eigenvalues, eigenvectors = np.linalg.eig(P_transposed)
+
+# 4. Find the index of the eigenvalue closest to 1
+idx = np.argmin(np.abs(eigenvalues - 1.0))
+
+# 5. Extract the corresponding eigenvector
+stationary_vector = eigenvectors[:, idx].real
+
+# 6. Normalize the vector so its elements sum to 1 (representing probabilities)
+stationary_vector = stationary_vector / np.sum(stationary_vector)
+
+print("Stationary Distribution:", stationary_vector)
